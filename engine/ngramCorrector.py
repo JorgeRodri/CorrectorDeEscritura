@@ -97,6 +97,7 @@ class Corrector:
     def correction(self, word):
         """Most probable spelling correction for word."""
         c = self.__candidates__(word.lower())
+        print(c)
         if len(c) == 1 and not self.__known__(c):
             return ' '.join(self.true_segment(c[0]))
         return max(c, key=self.p)
@@ -125,7 +126,6 @@ class Corrector:
         else:
             candidates = [[first] + self.__segment__(rest)
                           for (first, rest) in splits(text, 1)]
-            # print(candidates)
             return max(candidates, key=self.p_words)
 
     def true_segment(self, word):

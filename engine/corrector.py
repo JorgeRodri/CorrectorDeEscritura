@@ -127,7 +127,7 @@ class Corrector(object):
 
     def p_words(self, words):
         """Probability of words, assuming each word is independent of others."""
-        return product(self.p(w) for w in words)
+        return np.float64(product(self.p(w) for w in words))
 
     @memo
     def __segment__(self, text):
