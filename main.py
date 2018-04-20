@@ -31,22 +31,31 @@ def get_title_description(archivo_credenciales, program_number=500, episode_numb
     print(len(df1), time.time()-t0)
 
     t0 = time.time()
-    df2 = get_more_data(programs, archivo_credenciales, episodes=episode_number)
-    print(len(df2), time.time()-t0)
-    return df1.append(df2)
+    if episode_number == 0:
+        return df1
+    elif episode_number > 0:
+        df2 = get_more_data(programs, archivo_credenciales, episodes=episode_number)
+        print(len(df2), time.time()-t0)
+        return df1.append(df2)
+    else:
+        print('Wrong valid number of episode, no data added from that source, try values equal or bigger than 0')
+        return df1
 
 
-def main(country, mode, save_path='',  archivo=None, **kwargs):
+def main(country, mode, test=True,  save_path='', value=5,  archivo=None, **kwargs):
     print(datetime.now())
     stop_words = get_stopwords_by_country(country)
     # print(stop_words)
+    text_file_name = 'texts_dataframe_cc{0}_ep{1}_progs{2}.pkl'.format(country,
+                                                                       kwargs['episode_number'],
+                                                                       kwargs['program_number'])
     if country == 1 and mode == 'pickle':
-        df = pd.read_pickle(save_path + 'texts_dataframe.pkl')
+        df = pd.read_pickle(save_path + text_file_name)
     elif mode == 'pickle':
-        df = pd.read_pickle(save_path + 'texts_dataframe{}.pkl'.format(country))
+        df = pd.read_pickle(save_path + text_file_name)
     elif mode == 'download' and archivo is not None:
         df = get_title_description(archivo, country=country, **kwargs)
-        df.to_pickle(save_path + 'texts_dataframe{}.pkl'.format(country))
+        df.to_pickle(save_path + text_file_name)
     elif archivo is None:
         print('No credential file, try pickle')
         return None
@@ -56,11 +65,11 @@ def main(country, mode, save_path='',  archivo=None, **kwargs):
     text = df['title'] + ' ' + df['description']
     text = text.apply(normalize_text)
     text = word_tokenize(' '.join(text.values))
-    cor = Corrector(text)
+    cor = Corrector(text, min_count=value)
 
     print(datetime.now())
 
-    while True:
+    while test:
         input_text = raw_input('Frase a corregir: ').decode(sys.stdin.encoding or locale.getpreferredencoding(True))
         if input_text == 'exit' or input_text.isdigit() or len(input_text) < 1:
             break
@@ -79,4 +88,7 @@ def main(country, mode, save_path='',  archivo=None, **kwargs):
 
 
 if __name__ == '__main__':
-    main(1, 'pickle', archivo=arch, save_path=path, program_number=500, episode_number=10)
+    # value = entre episodes/2 y episodes/20 permite mantener términos erróneos en los episodios controlados
+    main(1, 'download', test=False, archivo=arch, value=5, save_path=path, program_number=500, episode_number=10)
+    main(1, 'download', test=False, archivo=arch, value=1, save_path=path, program_number=5000, episode_number=0)
+    main(1, 'download', test=False, archivo=arch, value=5, save_path=path, program_number=50, episode_number=100)

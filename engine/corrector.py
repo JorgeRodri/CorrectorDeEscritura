@@ -8,11 +8,11 @@ import numpy as np
 
 def edits_tildes(word):
     split = [(word[:i], word[i:]) for i in range(len(word) + 1)]
-    a = [L + 'á' + R[1:] for L, R in split if R and R[0] == 'a']
-    e = [L + 'é' + R[1:] for L, R in split if R and R[0] == 'e']
-    i = [L + 'í' + R[1:] for L, R in split if R and R[0] == 'i']
-    o = [L + 'ó' + R[1:] for L, R in split if R and R[0] == 'o']
-    u = [L + 'ú' + R[1:] for L, R in split if R and R[0] == 'u']
+    a = [L + u'á' + R[1:] for L, R in split if R and R[0] == 'a']
+    e = [L + u'é' + R[1:] for L, R in split if R and R[0] == 'e']
+    i = [L + u'í' + R[1:] for L, R in split if R and R[0] == 'i']
+    o = [L + u'ó' + R[1:] for L, R in split if R and R[0] == 'o']
+    u = [L + u'ú' + R[1:] for L, R in split if R and R[0] == 'u']
     return a + e + i + o + u
 
 
