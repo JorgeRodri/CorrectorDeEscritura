@@ -43,9 +43,9 @@ def get_title_description(archivo_credenciales, program_number=500, episode_numb
 
 
 def main(country, mode, test=True,  save_path='', value=5,  archivo=None, **kwargs):
-    print(datetime.now())
+    if mode == 'download':
+        print(datetime.now())
     stop_words = get_stopwords_by_country(country)
-    # print(stop_words)
     text_file_name = 'texts_dataframe_cc{0}_ep{1}_progs{2}.pkl'.format(country,
                                                                        kwargs['episode_number'],
                                                                        kwargs['program_number'])
@@ -62,33 +62,40 @@ def main(country, mode, test=True,  save_path='', value=5,  archivo=None, **kwar
     else:
         print('Wrong mode, try pickle or download')
         return None
+    print(len(df))
     text = df['title'] + ' ' + df['description']
     text = text.apply(normalize_text)
     text = word_tokenize(' '.join(text.values))
     cor = Corrector(text, min_count=value)
 
-    print(datetime.now())
+    if mode == 'download':
+        print(datetime.now())
 
     while test:
         input_text = raw_input('Frase a corregir: ').decode(sys.stdin.encoding or locale.getpreferredencoding(True))
         if input_text == 'exit' or input_text.isdigit() or len(input_text) < 1:
             break
         t1 = time.time()
-        if len(input_text.split()) == 1:
-            print('Word: %s: %d' % (input_text, cor.WORDS[input_text]))
+        # if len(input_text.split()) == 1:
+            # print('Word: %s: %d' % (input_text, cor.WORDS[input_text]))
         correction = cor.final_correction(input_text)
-        print(list(map(lambda x: (x, cor.WORDS[x]), correction)))
+        # print(list(map(lambda x: (x, cor.WORDS[x]), correction)))
         print(' '.join(correction))
         print('Esta correccion necesito de %.4f segundos.\n' % (time.time()-t1))
-        for i in all_ngrams(correction, stop_words, n_grams):
-            print(i)
-            l = i.split()
-            for j in range(1, len(l)-1):
-                print(' '.join(l[:j]+l[j+1:]))
+        # for i in all_ngrams(correction, stop_words, n_grams):
+        #     print(i)  
+        #     l = i.split()
+        #     for j in range(1, len(l)-1):
+        #         print(' '.join(l[:j]+l[j+1:]))
 
 
 if __name__ == '__main__':
     # value = entre episodes/2 y episodes/20 permite mantener términos erróneos en los episodios controlados
-    main(1, 'download', test=False, archivo=arch, value=5, save_path=path, program_number=500, episode_number=10)
-    main(1, 'download', test=False, archivo=arch, value=1, save_path=path, program_number=5000, episode_number=0)
-    main(1, 'download', test=False, archivo=arch, value=5, save_path=path, program_number=50, episode_number=100)
+    test_boo = False
+    print('Modelo 1')
+    main(1, 'pickle', test=test_boo, archivo=arch, value=5, save_path=path, program_number=500, episode_number=10)
+    print('Modelo 2')
+    main(1, 'pickle', test=test_boo, archivo=arch, value=1, save_path=path, program_number=5000, episode_number=0)
+    print('Modelo 3')
+    main(1, 'pickle', test=test_boo, archivo=arch, value=5, save_path=path, program_number=50, episode_number=100)
+    print('All done')
