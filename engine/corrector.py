@@ -6,6 +6,16 @@ import itertools
 import numpy as np
 
 
+def edits_tildes(word):
+    split = [(word[:i], word[i:]) for i in range(len(word) + 1)]
+    a = [L + 'á' + R[1:] for L, R in split if R and R[0] == 'a']
+    e = [L + 'é' + R[1:] for L, R in split if R and R[0] == 'e']
+    i = [L + 'í' + R[1:] for L, R in split if R and R[0] == 'i']
+    o = [L + 'ó' + R[1:] for L, R in split if R and R[0] == 'o']
+    u = [L + 'ú' + R[1:] for L, R in split if R and R[0] == 'u']
+    return a + e + i + o + u
+
+
 def edits0(word):
     split = [(word[:i], word[i:]) for i in range(len(word) + 1)]
     ache = [L + 'h' + R for L, R in split]
@@ -16,7 +26,8 @@ def edits0(word):
     ere = [L + 'r' + R for L, R in split if L and R and L[-1] == 'r' and R[0] != 'r' and L[-2:] != 'rr' and len(L) > 1]
     ll = [L + 'y' + R[2:] for L, R in split if R if R[:2] == 'll']
     y = [L + 'll' + R[1:] for L, R in split if R if R[0] == 'y']
-    return set(ache + uve + be + jot + ge + ere + ll + y)
+    tildes = edits_tildes(word)
+    return set(ache + uve + be + jot + ge + ere + ll + y + tildes)
 
 
 def edits1(word):
@@ -77,9 +88,15 @@ class Corrector(object):
     for_ = 'iVoox'
     when = 'March2018'
 
-    def __init__(self, big_text):
+    def __init__(self, big_text, min_count=1):
+        """
+        Constructor para el corrector
+        :param big_text: texto a usar como diccionario
+        :param min_count: minimo numero de apariciones para que una palabra se tenga en cuenta (confianza de la fuente)
+        """
         self.WORDS = Counter(big_text)  # {k: v for k, v in Counter(big_text).iteritems() if v >= 5}
         self.__total__ = sum(self.WORDS.values())
+        self.min_count = min_count
 
     def p(self, word):
         """Probability of `word`."""
@@ -106,7 +123,7 @@ class Corrector(object):
 
     def __known__(self, words):
         """The subset of `words` that appear in the dictionary of WORDS."""
-        return set(w for w in words if w in self.WORDS and self.WORDS[w] >= 4)
+        return set(w for w in words if w in self.WORDS and self.WORDS[w] >= self.min_count)
 
     def p_words(self, words):
         """Probability of words, assuming each word is independent of others."""

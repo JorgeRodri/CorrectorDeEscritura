@@ -39,7 +39,7 @@ def get_title_description(archivo_credenciales, program_number=500, episode_numb
 def main(country, mode, save_path='',  archivo=None, **kwargs):
     print(datetime.now())
     stop_words = get_stopwords_by_country(country)
-    print(stop_words)
+    # print(stop_words)
     if country == 1 and mode == 'pickle':
         df = pd.read_pickle(save_path + 'texts_dataframe.pkl')
     elif mode == 'pickle':
