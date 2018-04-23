@@ -149,7 +149,7 @@ def main_all(country):
               'data/texts_dataframe_cc1_ep100_progs50.pkl',
               'data/texts_dataframe_mixture_cc1.pkl']
     for i in range(len(models)):
-        print('Model{}: '.format(i+1) + models[i])
+        print('Model {}: '.format(i+1) + models[i])
 
     values = [1, 5, 5, 4]
 
@@ -189,15 +189,19 @@ def main_all(country):
             break
         t1 = time.time()
         print('Model 1:' + ' '.join(cor0.final_correction(input_text)))
+        # print('Model 1:' + str(cor0.WORDS[input_text]))
         print('Esta correccion necesito de %.4f segundos.' % (time.time()-t1))
         t1 = time.time()
         print('Model 2:' + ' '.join(cor1.final_correction(input_text)))
+        # print('Model 2:' + str(cor1.WORDS[input_text]))
         print('Esta correccion necesito de %.4f segundos.' % (time.time()-t1))
         t1 = time.time()
         print('Model 3:' + ' '.join(cor2.final_correction(input_text)))
+        # print('Model 3:' + str(cor2.WORDS[input_text]))
         print('Esta correccion necesito de %.4f segundos.' % (time.time()-t1))
         t1 = time.time()
         print('Model 4:' + ' '.join(cor3.final_correction(input_text)))
+        # print('Model 4:' + str(cor3.WORDS[input_text]))
         print('Esta correccion necesito de %.4f segundos.\n' % (time.time()-t1))
 
 

@@ -28,7 +28,7 @@ def normalize_text(text):
     non_words.extend(['\n', '\r', '\t'])
     norm_text = un_punctuate(norm_text, non_words)
     norm_text = clean_digit_url(norm_text)
-    norm_text = norm_text.replace('ohmylol', 'oh my lol')
+    # norm_text = norm_text.replace('ohmylol', 'oh my lol')
     return norm_text
 
 

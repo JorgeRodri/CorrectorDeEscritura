@@ -109,6 +109,11 @@ class Corrector(object):
             return ' '.join(self.true_segment(c[0]))
         return max(c, key=self.p)
 
+    def __word_correction__(self, word):
+        """Most probable spelling correction for word."""
+        c = self.__candidates__(word.lower())
+        return max(c, key=self.p)
+
     def __candidates__(self, word):
         """Generate possible spelling corrections for word."""
         if word[-1] == 's':
@@ -171,8 +176,12 @@ class Corrector(object):
         if text.isdigit() or p.match(text):
             return [text]
         norm_text = normalize_text(text)
-        cor1 = list(self.correct_text(' '.join(self.joins(norm_text))))
-        cor2 = self.joins(' '.join(self.correct_text(text)))
+        try:
+            cor1 = list(self.correct_text(' '.join(self.joins(norm_text))))
+            cor2 = self.joins(' '.join(self.correct_text(norm_text)))
+        except RuntimeError:
+            cor1 = self.__word_correction__(text)
+            cor2 = cor1
         return max([cor1, cor2], key=self.p_words)
 
     def final_correction(self, text):
