@@ -20,6 +20,7 @@ def clean_digit_url(text):
 def normalize_text(text):
     norm_text = text.lower()
     # Replace breaks with spaces
+    norm_text = clean_digit_url(norm_text)
     norm_text = norm_text.replace('<br />', '')
     # Pad punctuation with spaces on both sides
     non_words = list(punctuation)
@@ -27,8 +28,6 @@ def normalize_text(text):
     non_words.extend(map(str, range(10)))
     non_words.extend(['\n', '\r', '\t'])
     norm_text = un_punctuate(norm_text, non_words)
-    norm_text = clean_digit_url(norm_text)
-    # norm_text = norm_text.replace('ohmylol', 'oh my lol')
     return norm_text
 
 

@@ -63,10 +63,14 @@ def get_data(programs, connection_credentials_files):
     try:
         connection = getconnection(connection_credentials)
         cur = connection.cursor()
+        count = 0
         for i in programs:
+            count += 1
             cur.execute(query % i)
             current = cur.fetchone()
             df = df.append(current, ignore_index=True)
+            if count % 100 == 0:
+                time.sleep(5)
         connection.close()
 
     except pymysql.DataError as e:
