@@ -99,13 +99,17 @@ def get_data(programs, connection_credentials_files):
     return df
 
 
-def get_more_data(programs, connection_credentials_files, episodes=20):
+def get_more_data(programs, connection_credentials_files, random_order=False, episodes=20):
     sleep_count = 0
     query = 'SELECT audio_fkprogram, audio_title, audio_description ' \
             'FROM ivoox.audio ' \
-            'WHERE audio_fkprogram = %d ' \
-            'ORDER BY RAND() ' \
+            'WHERE audio_fkprogram = %d {}' \
             'LIMIT %d'
+
+    if random_order:
+        query = query.format('ORDER BY RAND() ')
+    else:
+        query = query.format('')
 
     df = pd.DataFrame(
         columns=['audio_fkprogram', 'audio_title', 'audio_description'])

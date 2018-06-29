@@ -7,13 +7,20 @@ from string import punctuation
 def un_punctuate(text, p_):
     for char in p_:
         # print(char)
-        text = text.replace(char, '')  # ' ' + char + ' ')
+        text = text.replace(char, ' ')  # ' ' + char + ' ')
     return text
 
 
 def clean_digit_url(text):
-    text = re.sub(r'-?\d+[.,]?\d*%?', '', text)
-    text = re.sub(r'https?:\/\/(\w|\.|\/|\?|\=|\&|\%)*\b ', '', text)
+    text = re.sub(r'-?\d+[.,]?\d*%?', ' ', text)
+    text = re.sub(r'https?:\/\/(\w|\.|\/|\?|\=|\&|\%)*\b ', ' ', text)
+    return text
+
+
+def tildes(text):
+    d = {'a': u'á', 'e': u'é', 'i': u'í', 'o': u'ó', 'u': u'ú'}
+    for sin_tilde, con_tilde in d.iteritems():
+        text = text.replace(con_tilde, sin_tilde)
     return text
 
 
@@ -22,6 +29,7 @@ def normalize_text(text):
     # Replace breaks with spaces
     norm_text = clean_digit_url(norm_text)
     norm_text = norm_text.replace('<br />', '')
+    norm_text = tildes(norm_text)
     # Pad punctuation with spaces on both sides
     non_words = list(punctuation)
     non_words.extend([u'¿', u'¡'])

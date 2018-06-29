@@ -59,7 +59,7 @@ def page_not_found(e):
 if __name__ == '__main__':
     archivo = 'credenciales_server.json'
     # main(archivo)
-    df = pd.read_pickle('texts_dataframe.pkl')
+    df = pd.read_pickle('data/texts_dataframe.pkl')
     print(len(df))
     text = df['title'] + ' ' + df['description']
     text = text.apply(normalize_text)

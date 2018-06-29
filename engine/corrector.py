@@ -6,54 +6,6 @@ import itertools
 import numpy as np
 
 
-def edits_tildes(word):
-    split = [(word[:i], word[i:]) for i in range(len(word) + 1)]
-    a = [L + u'á' + R[1:] for L, R in split if R and R[0] == 'a']
-    e = [L + u'é' + R[1:] for L, R in split if R and R[0] == 'e']
-    i = [L + u'í' + R[1:] for L, R in split if R and R[0] == 'i']
-    o = [L + u'ó' + R[1:] for L, R in split if R and R[0] == 'o']
-    u = [L + u'ú' + R[1:] for L, R in split if R and R[0] == 'u']
-    return a + e + i + o + u
-
-
-def edits0(word):
-    split = [(word[:i], word[i:]) for i in range(len(word) + 1)]
-    ache = [L + 'h' + R for L, R in split]
-    uve = [L + 'v' + R[1:] for L, R in split if R and R[0] == 'b']
-    be = [L + 'b' + R[1:] for L, R in split if R and R[0] == 'v']
-    ge = [L + 'g' + R[1:] for L, R in split if R and R[0] == 'j']
-    jot = [L + 'j' + R[1:] for L, R in split if R and R[0] == 'g']
-    ere = [L + 'r' + R for L, R in split if L and R and L[-1] == 'r' and R[0] != 'r' and L[-2:] != 'rr' and len(L) > 1]
-    ll = [L + 'y' + R[2:] for L, R in split if R if R[:2] == 'll']
-    y = [L + 'll' + R[1:] for L, R in split if R if R[0] == 'y']
-    tildes = edits_tildes(word)
-    return set(ache + uve + be + jot + ge + ere + ll + y + tildes)
-
-
-def edits1(word):
-    """All edits that are one edit away from `word`."""
-    letters = u'abcdefghijklmnñopqrstuvwxyz'
-    split = [(word[:i], word[i:]) for i in range(len(word) + 1)]
-    deletes = [L + R[1:] for L, R in split if R]
-    transposes = [L + R[1] + R[0] + R[2:] for L, R in split if len(R) > 1]
-    replaces = [L + c + R[1:] for L, R in split if R for c in letters]
-    inserts = [L + c + R for L, R in split for c in letters]
-    return set(deletes + transposes + replaces + inserts)
-
-
-def edits2(word):
-    """All edits that are two edits away from `word`."""
-    return (e2 for e1 in edits1(word) for e2 in edits1(e1).union(edits0(e1)))
-
-
-def product(nums):
-    """Multiply the numbers together.  (Like `sum`, but with multiplication.)"""
-    result = 1
-    for x in nums:
-        result *= x
-    return result
-
-
 def memo(f):
     """Memoize function f, whose args must all be hashable."""
     cache = {}
@@ -62,25 +14,9 @@ def memo(f):
         if args not in cache:
             cache[args] = f(*args)
         return cache[args]
+
     fmemo.cache = cache
     return fmemo
-
-
-def splits(text, start=0, s=20):
-    """Return a list of all (first, rest) pairs; start <= len(first) <= L."""
-    return [(text[:i], text[i:])
-            for i in range(start, min(len(text), s)+1)]
-
-
-def n_grams(text, n=None):
-    search_list = text.split()
-    if n is None:
-        n = len(search_list)-1
-    if n == 0:
-        return ['']
-    elif n > len(search_list):
-        return [' '.join(search_list)]
-    return [' '.join(search_list[i:i+n]) for i in range(len(search_list)-n+1)]
 
 
 class Corrector(object):
@@ -97,6 +33,72 @@ class Corrector(object):
         self.WORDS = Counter(big_text)  # {k: v for k, v in Counter(big_text).iteritems() if v >= 5}
         self.__total__ = sum(self.WORDS.values())
         self.min_count = min_count
+
+    # Static methods
+    @staticmethod
+    def edits_tildes(word):
+        split = [(word[:i], word[i:]) for i in range(len(word) + 1)]
+        a = [L + u'á' + R[1:] for L, R in split if R and R[0] == 'a']
+        e = [L + u'é' + R[1:] for L, R in split if R and R[0] == 'e']
+        i = [L + u'í' + R[1:] for L, R in split if R and R[0] == 'i']
+        o = [L + u'ó' + R[1:] for L, R in split if R and R[0] == 'o']
+        u = [L + u'ú' + R[1:] for L, R in split if R and R[0] == 'u']
+        return a + e + i + o + u
+
+    @staticmethod
+    def edits0(word):
+        split = [(word[:i], word[i:]) for i in range(len(word) + 1)]
+        ache = [L + 'h' + R for L, R in split]
+        uve = [L + 'v' + R[1:] for L, R in split if R and R[0] == 'b']
+        be = [L + 'b' + R[1:] for L, R in split if R and R[0] == 'v']
+        ge = [L + 'g' + R[1:] for L, R in split if R and R[0] == 'j']
+        jot = [L + 'j' + R[1:] for L, R in split if R and R[0] == 'g']
+        ere = [L + 'r' + R for L, R in split if
+               L and R and L[-1] == 'r' and R[0] != 'r' and L[-2:] != 'rr' and len(L) > 1]
+        ll = [L + 'y' + R[2:] for L, R in split if R if R[:2] == 'll']
+        y = [L + 'll' + R[1:] for L, R in split if R if R[0] == 'y']
+        tildes = Corrector.edits_tildes(word)
+        return set(ache + uve + be + jot + ge + ere + ll + y + tildes)
+
+    @staticmethod
+    def edits1(word):
+        """All edits that are one edit away from `word`."""
+        letters = u'abcdefghijklmnñopqrstuvwxyzáéíóú'
+        split = [(word[:i], word[i:]) for i in range(len(word) + 1)]
+        deletes = [L + R[1:] for L, R in split if R]
+        transposes = [L + R[1] + R[0] + R[2:] for L, R in split if len(R) > 1]
+        replaces = [L + c + R[1:] for L, R in split if R for c in letters]
+        inserts = [L + c + R for L, R in split for c in letters]
+        return set(deletes + transposes + replaces + inserts)
+
+    @staticmethod
+    def edits2(word):
+        """All edits that are two edits away from `word`."""
+        return (e2 for e1 in Corrector.edits1(word) for e2 in Corrector.edits1(e1).union(Corrector.edits0(e1)))
+
+    @staticmethod
+    def product(nums):
+        """Multiply the numbers together.  (Like `sum`, but with multiplication.)"""
+        result = 1
+        for x in nums:
+            result *= x
+        return result
+
+    @staticmethod
+    def splits(text, start=0, s=20):
+        """Return a list of all (first, rest) pairs; start <= len(first) <= L."""
+        return ((text[:i], text[i:]) for i in range(start, min(len(text), s) + 1))
+
+    @staticmethod
+    def n_grams(text, n=None):
+        search_list = text.split()
+        if n is None:
+            n = len(search_list) - 1
+        if n == 0:
+            return ['']
+        elif n > len(search_list):
+            return [' '.join(search_list)]
+        return [' '.join(search_list[i:i + n]) for i in range(len(search_list) - n + 1)]
 
     def p(self, word):
         """Probability of `word`."""
@@ -117,13 +119,13 @@ class Corrector(object):
     def __candidates__(self, word):
         """Generate possible spelling corrections for word."""
         if word[-1] == 's':
-            return self.__known__([word]) or self.__known__([word[0:-1]]) or self.__known__(edits0(word)) or \
-                   self.__known__(edits1(word[0:-1])) or self.__known__(edits1(word)) or \
-                   self.__known__(edits2(word)) or [word]
+            return self.__known__([word]) or self.__known__([word[0:-1]]) or self.__known__(Corrector.edits0(word)) or \
+                   self.__known__(Corrector.edits1(word[0:-1])) or self.__known__(Corrector.edits1(word)) or \
+                   self.__known__(Corrector.edits2(word)) or [word]
         return self.__known__([word]) \
-            or self.__known__(edits0(word)) \
-            or self.__known__(edits1(word)) \
-            or self.__known__(edits2(word))\
+            or self.__known__(Corrector.edits0(word)) \
+            or self.__known__(Corrector.edits1(word)) \
+            or self.__known__(Corrector.edits2(word))\
             or [word]
 
     def __known__(self, words):
@@ -132,7 +134,7 @@ class Corrector(object):
 
     def p_words(self, words):
         """Probability of words, assuming each word is independent of others."""
-        return np.float64(product(self.p(w) for w in words))
+        return np.float64(Corrector.product(self.p(w) for w in words))
 
     @memo
     def __segment__(self, text):
@@ -141,7 +143,7 @@ class Corrector(object):
             return []
         else:
             candidates = [[first] + self.__segment__(rest)
-                          for (first, rest) in splits(text, 1)]
+                          for (first, rest) in Corrector.splits(text, 1)]
             # print(candidates)
             return max(candidates, key=self.p_words)
 

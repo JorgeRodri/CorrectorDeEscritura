@@ -4,6 +4,18 @@ from engine.utils import normalize_text
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from ngramUtils import zipngram
+from itertools import chain
+import re
+
+
+def edits_tildes(word):
+    split = [(word[:i], word[i:]) for i in range(len(word) + 1)]
+    a = [L + u'á' + R[1:] for L, R in split if R and R[0] == 'a']
+    e = [L + u'é' + R[1:] for L, R in split if R and R[0] == 'e']
+    i = [L + u'í' + R[1:] for L, R in split if R and R[0] == 'i']
+    o = [L + u'ó' + R[1:] for L, R in split if R and R[0] == 'o']
+    u = [L + u'ú' + R[1:] for L, R in split if R and R[0] == 'u']
+    return a + e + i + o + u
 
 
 def edits0(word):
@@ -16,6 +28,7 @@ def edits0(word):
     ere = [L + 'r' + R for L, R in split if L and R and L[-1] == 'r' and R[0] != 'r' and L[-2:] != 'rr' and len(L) > 1]
     ll = [L + 'y' + R[2:] for L, R in split if R if R[:2] == 'll']
     y = [L + 'll' + R[1:] for L, R in split if R if R[0] == 'y']
+    # tildes = edits_tildes(word)
     return set(ache + uve + be + jot + ge + ere + ll + y)
 
 
@@ -79,28 +92,39 @@ def get_texts(text):
     return text
 
 
-class Corrector:
-    def __init__(self, big_text):
+class BiCorrector:
+    def __init__(self, big_text, min_count=2):
         self.WORDS = Counter(big_text)
-        self.BIGRAMS = Counter(zipngram(big_text))
+        self.BIGRAMS = Counter(zipngram(' '.join(big_text)))
+        print(self.BIGRAMS.most_common(50))
         self.__total__ = sum(self.WORDS.values())
         self.__bigramtotal__ = sum(self.BIGRAMS.values())
+        self.min = min_count
 
     def p(self, word):
         """Probability of `word`."""
         return float(self.WORDS[word]) / self.__total__
 
-    def pngram(self, ngram):
+    def pngram(self, first, second):
         """Probability of `word`."""
-        return float(self.BIGRAMS[ngram]) / self.__bigramtotal__
+        return float(self.BIGRAMS[(first, second)]) / self.WORDS[second] if self.WORDS[second] >= self.min else 0
 
-    def correction(self, word):
-        """Most probable spelling correction for word."""
-        c = self.__candidates__(word.lower())
-        print(c)
-        if len(c) == 1 and not self.__known__(c):
-            return ' '.join(self.true_segment(c[0]))
-        return max(c, key=self.p)
+    def pn_last_gram(self, first, second):
+        """Probability of `word`."""
+        return float(self.BIGRAMS[(first, second)]) / self.WORDS[first] if self.WORDS[first] >= self.min else 0
+
+    def __candidates_n_grams__(self, word, next_word):
+        """Generate possible spelling corrections for word."""
+        return set([word] if (word, next_word) in self.BIGRAMS else []) \
+            or set(w for w in edits0(word) if (w, next_word) in self.BIGRAMS) \
+            or set(w for w in edits1(word) if (w, next_word) in self.BIGRAMS) \
+            or set(w for w in edits2(word) if (w, next_word) in self.BIGRAMS)
+
+    def __reverse_n_gram_candidates__(self, word, previous):
+        return set([word] if (previous, word) in self.BIGRAMS else [])\
+               or set(w for w in edits0(word) if (previous, w) in self.BIGRAMS) \
+               or set(w for w in edits1(word) if (previous, w) in self.BIGRAMS) \
+               or set(w for w in edits2(word) if (previous, w) in self.BIGRAMS)
 
     def __candidates__(self, word):
         """Generate possible spelling corrections for word."""
@@ -111,8 +135,8 @@ class Corrector:
             or [word]
 
     def __known__(self, words):
-        """The subset of `words` that appear in the dictionary of WORDS."""
-        return set(w for w in words if w in self.WORDS)
+        """The subset of `words` that appear in the dictionary of WORDS and BIGRAMS."""
+        return set(w for w in words if w in self.WORDS and self.WORDS[w] >= self.min)
 
     def p_words(self, words):
         """Probability of words, assuming each word is independent of others."""
@@ -130,13 +154,15 @@ class Corrector:
 
     def true_segment(self, word):
         candidates = self.__segment__(word)
-        return self.correct_text(' '.join(candidates))
+        return ' '.join(candidates)
         # return list(filter(lambda x: len(x) > 1, candidates))
 
-    def correct_text(self, text):
-        word_list = normalize_text(text).split()
-        for word in word_list:
-            yield self.correction(word)
+    def correction(self, word):
+        """Most probable spelling correction for word."""
+        c = self.__candidates__(word)
+        if len(c) == 1 and not self.__known__(c):
+            return self.true_segment(c[0])
+        return max(c, key=self.p)
 
     def joins(self, text):
         word_list = text.split()
@@ -149,8 +175,52 @@ class Corrector:
         final_probability = {' '.join(candidates[i]): probs[i]*coef[i] for i in range(len(probs))}
         return max(candidates, key=lambda x: final_probability[' '.join(x)])
 
+    def bi_correction(self, word, next_word):
+        c = self.__candidates_n_grams__(word, next_word)
+        if c:
+            return max(c, key=lambda x: self.pngram(x, next_word))
+        else:
+            return self.correction(word)
+
+    def bi_last_correct(self, word, previous):
+        c = self.__reverse_n_gram_candidates__(word, previous)
+        if c:
+            return max(c, key=lambda x: self.pn_last_gram(previous, x))
+        else:
+            return self.correction(word)
+
     def final_correct(self, text):
-        norm_text = normalize_text(text)
-        cor1 = list(self.correct_text(' '.join(self.joins(norm_text))))
-        cor2 = self.joins(' '.join(self.correct_text(text)))
-        return max([cor1, cor2], key=self.p_words)
+        word_list = normalize_text(text).split()
+        if len(word_list) == 1:
+            return self.correction(word_list[0])
+        else:
+            sentence = [self.bi_correction(word, next_word)
+                        for (word, next_word) in zip(*[word_list[i:] for i in range(2)])]
+            sentence += [self.bi_last_correct(word_list[-1], sentence[-1])]
+            return ' '.join(sentence)
+
+    def __final_correct__(self, text):
+        # TODO as in the corrector for the treatment of numbers and special cases
+
+        p = re.compile('(\d+\.?\d *)')
+        if text.isdigit() or p.match(text):
+            return text
+
+        word_list = normalize_text(text).split()
+        if len(word_list) == 1:
+            return self.correction(word_list[0])
+        else:
+            sentence = [self.bi_correction(word, next_word)
+                        for (word, next_word) in zip(*[word_list[i:] for i in range(2)])]
+            sentence += [self.bi_last_correct(word_list[-1], sentence[-1])]
+            return ' '.join(sentence)
+
+    def numb_treatment(self, text):
+        numb_match = re.findall('[a-zA-Z]+\d[a-zA-Z]+', text)
+        for match in numb_match:
+            changed = re.sub('\d', '', match)
+            text = text.replace(match, changed)
+        by_numbers = re.split(r'(\d+(?:[.,]\d*)?)', text)
+        correction = map(lambda x: self.__final_correct__(x), by_numbers)
+        print(correction)
+        return ' '.join(correction)
